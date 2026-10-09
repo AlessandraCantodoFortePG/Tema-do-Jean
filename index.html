@@ -1,0 +1,741 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#071a17" />
+<meta name="description" content="Assistente visual experimental para observar gráficos. Leituras aproximadas, sem ordens ou promessa de resultado." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<title>OlhoVivo — Radar visual de gráficos</title>
+<style>
+:root{color-scheme:dark;--bg:#071a17;--bg-deep:#04110f;--panel:#0b211d;--panel-hi:#102b25;--line:rgba(151,221,191,.13);--line-strong:rgba(151,221,191,.23);--text:#effaf5;--muted:#8da59a;--soft:#b4c8bd;--mint:#41f2a1;--mint-dim:#1a8860;--amber:#f4c46a;--coral:#ff7e78;--shadow:0 24px 72px rgba(0,0,0,.22);--radius:22px;--font:'Space Grotesk',ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+*{box-sizing:border-box}
+html{min-width:320px;background:var(--bg);scroll-behavior:smooth}
+body{margin:0;min-height:100vh;color:var(--text);font-family:var(--font);background:radial-gradient(ellipse at 25% -20%,rgba(29,105,72,.18),transparent 52%),linear-gradient(180deg,#081a16 0%,var(--bg) 100%);-webkit-font-smoothing:antialiased}
+button,a{-webkit-tap-highlight-color:transparent}
+button{font:inherit}
+button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var(--mint);outline-offset:3px}
+.app-shell{max-width:1240px;padding:0 54px 36px;margin:0 auto;min-height:100vh}
+.topbar{height:76px;display:flex;align-items:center;border-bottom:1px solid rgba(151,221,191,.09);position:relative}
+.brand{display:inline-flex;align-items:center;gap:10px;color:var(--text);text-decoration:none}
+.brand-mark{width:30px;height:30px;display:grid;place-items:center;border-radius:11px;background:rgba(65,242,161,.10);border:1px solid rgba(65,242,161,.21)}
+.brand-mark svg{width:20px;height:20px}
+.brand-word{font-weight:700;letter-spacing:-.07em;font-size:18px}
+.brand-word>span{color:var(--mint)}
+.privacy-chip{position:absolute;left:50%;transform:translateX(-50%);font:500 11px/1 var(--font);letter-spacing:.02em;color:#a3beb0;display:flex;gap:8px;align-items:center;border:1px solid var(--line);padding:9px 12px;border-radius:30px;background:rgba(11,33,29,.65)}
+.privacy-dot,.frame-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--mint);box-shadow:0 0 10px rgba(65,242,161,.6)}
+.icon-button{margin-left:auto;width:34px;height:34px;border:1px solid var(--line);color:var(--soft);background:rgba(14,39,33,.75);border-radius:50%;font-size:16px;cursor:pointer;transition:all .2s ease}
+.icon-button:hover{color:var(--mint);border-color:rgba(65,242,161,.5);transform:translateY(-1px)}
+.intro{max-width:630px;padding:47px 0 35px}
+.eyebrow,.step-label{color:#81a393;font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;display:flex;align-items:center;gap:9px}
+.eyebrow-line{display:inline-block;width:18px;height:1px;background:var(--mint);box-shadow:0 0 10px rgba(65,242,161,.7)}
+h1,h2,h3,p{margin-top:0}
+.intro h1{font-size:clamp(38px,5.5vw,60px);line-height:1.02;letter-spacing:-.065em;margin:17px 0 14px;font-weight:600}
+.intro h1 span{color:#8ca79a}
+.intro-copy{max-width:500px;color:#91a79c;font-size:14px;line-height:1.75;margin-bottom:0}
+.workspace{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(355px,.88fr);align-items:start;gap:38px}
+.view-column,.readout-column{min-width:0}
+.section-heading,.history-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:15px;min-height:40px}
+.section-heading h2,.history-heading h2{font-size:17px;line-height:1.2;letter-spacing:-.04em;margin:5px 0 0;font-weight:600}
+.section-heading .step-label,.history-heading .step-label{font-size:9px}
+.status-pill{display:flex;align-items:center;gap:8px;font-size:10px;color:#9bb0a4;border:1px solid var(--line);border-radius:30px;padding:7px 10px;background:rgba(255,255,255,.018)}
+.status-ring{width:7px;height:7px;border-radius:50%;border:1px solid var(--mint);box-shadow:0 0 8px rgba(65,242,161,.35)}
+.status-pill.is-live .status-ring{background:var(--mint);animation:statusPulse 1.4s infinite}
+.camera-frame{position:relative;overflow:hidden;isolation:isolate;width:100%;aspect-ratio:1.33;border-radius:20px;border:1px solid rgba(123,191,154,.27);background:#061512;box-shadow:inset 0 0 52px rgba(41,150,99,.035),var(--shadow)}
+.camera-frame:after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(125deg,rgba(65,242,161,.035),transparent 36%,transparent 75%,rgba(65,242,161,.018))}
+.camera-media{position:absolute;inset:0;z-index:0;width:100%;height:100%;object-fit:contain;background:#06110f}
+.overlay-canvas{position:absolute;z-index:2;inset:0;width:100%;height:100%;pointer-events:none}
+.camera-placeholder{position:absolute;inset:0;z-index:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 20px 36px;text-align:center}
+.camera-placeholder strong{margin:13px 0 6px;font-size:14px;letter-spacing:-.02em;font-weight:600}
+.camera-placeholder>span{color:#71897c;font-size:11px;line-height:1.5;max-width:250px}
+.radar-art{width:min(45%,206px);min-width:160px;aspect-ratio:1;display:grid;place-items:center;position:relative;border-radius:50%;background:radial-gradient(circle,rgba(47,152,103,.14) 0,rgba(18,79,54,.07) 53%,transparent 72%)}
+.radar-ring{position:absolute;border:1px solid rgba(65,242,161,.11);border-radius:50%}
+.radar-ring-one{inset:13%}
+.radar-ring-two{inset:28%;border-color:rgba(65,242,161,.18)}
+.radar-cross{position:absolute;background:rgba(65,242,161,.10)}
+.radar-cross-x{width:80%;height:1px}
+.radar-cross-y{height:80%;width:1px}
+.mini-chart{position:relative;width:77%;overflow:visible;z-index:1}
+.chart-grid{stroke:rgba(153,215,183,.12);stroke-width:1;stroke-dasharray:2 5}
+.chart-line{fill:none;stroke:#41f2a1;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;opacity:.82}
+.chart-point{fill:var(--mint);filter:drop-shadow(0 0 6px rgba(65,242,161,.9))}
+.radar-sweep{position:absolute;z-index:2;width:48%;height:48%;top:2%;left:49%;transform-origin:left bottom;transform:rotate(38deg);background:linear-gradient(145deg,rgba(65,242,161,.17),transparent 73%);border-right:1px solid rgba(65,242,161,.14);animation:radarSweep 8s linear infinite}
+.viewfinder{position:absolute;z-index:3;pointer-events:none;inset:14% 9% 18%;opacity:.45}
+.viewfinder i{position:absolute;width:15px;height:15px;border-color:var(--mint);border-style:solid;filter:drop-shadow(0 0 6px rgba(65,242,161,.4))}
+.viewfinder i:nth-child(1){top:0;left:0;border-width:1px 0 0 1px;border-radius:4px 0 0}
+.viewfinder i:nth-child(2){top:0;right:0;border-width:1px 1px 0 0;border-radius:0 4px 0}
+.viewfinder i:nth-child(3){bottom:0;left:0;border-width:0 0 1px 1px;border-radius:0 0 0 4px}
+.viewfinder i:nth-child(4){bottom:0;right:0;border-width:0 1px 1px 0;border-radius:0 0 4px}
+.frame-caption{position:absolute;bottom:13px;left:15px;z-index:4;display:flex;gap:7px;align-items:center;font-size:8px;color:#6e897c;font-weight:600;letter-spacing:.12em}
+.frame-caption .frame-dot{width:5px;height:5px}
+.scan-line{position:absolute;z-index:4;pointer-events:none;left:0;right:0;height:1px;top:8%;background:linear-gradient(90deg,transparent,rgba(65,242,161,.95),transparent);box-shadow:0 0 12px rgba(65,242,161,.8);animation:scanMove 1.8s ease-in-out infinite alternate}
+.live-signal{position:absolute;z-index:5;top:12px;left:12px;max-width:calc(100% - 24px);display:flex;align-items:center;gap:9px;padding:9px 12px;border:1px solid rgba(151,221,191,.23);border-radius:12px;background:rgba(4,17,15,.86);box-shadow:0 8px 24px rgba(0,0,0,.28);backdrop-filter:blur(8px);color:#dceee4}
+.live-signal-pulse{width:8px;height:8px;flex:none;border-radius:50%;background:var(--amber);box-shadow:0 0 10px rgba(244,196,106,.6);animation:statusPulse 1.8s infinite}
+.live-signal.is-buy .live-signal-pulse{background:var(--mint);box-shadow:0 0 10px rgba(65,242,161,.65)}
+.live-signal.is-sell .live-signal-pulse{background:var(--coral);box-shadow:0 0 10px rgba(255,126,120,.65)}
+.live-signal-copy{min-width:0;display:grid;gap:4px}
+.live-signal-copy small{font-size:8px;font-weight:700;letter-spacing:.11em;color:#91aa9b}
+.live-signal-copy strong{font-size:11px;line-height:1.25;white-space:normal}
+.capture-controls{display:flex;gap:10px;margin-top:13px}
+.button{border:1px solid transparent;border-radius:12px;min-height:46px;padding:0 16px;display:inline-flex;align-items:center;justify-content:center;gap:9px;font-weight:600;font-size:12px;cursor:pointer;transition:transform .16s ease,border-color .2s ease,background .2s ease,box-shadow .2s ease;color:var(--text)}
+.button:hover:not(:disabled){transform:translateY(-1px)}
+.button:active:not(:disabled){transform:scale(.985)}
+.button:disabled{opacity:.42;cursor:not-allowed}
+.button svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.button-secondary{background:rgba(15,42,35,.8);border-color:var(--line);color:#cee0d6}
+.button-secondary:hover{border-color:rgba(65,242,161,.37);color:var(--mint);background:#0e2a22}
+.button-primary{background:var(--mint);color:#042016;border-color:#6ff5b8;font-weight:700;box-shadow:0 6px 26px rgba(48,215,139,.14)}
+.button-primary:hover:not(:disabled){background:#64f5b1;box-shadow:0 9px 30px rgba(48,215,139,.21)}
+.button-primary:disabled{opacity:1;background:#13271f;color:#789085;border-color:rgba(151,221,191,.14);box-shadow:none}
+.button-primary:disabled .button-spark,.button-primary:disabled .button-arrow{color:#647c70}
+.button-wide{width:100%;min-height:51px;border-radius:13px}
+.mobile-capture{display:none;margin-top:12px}
+.mobile-capture:not(.hidden){display:block}
+.readout-column{padding-top:0}
+.result-heading{margin-bottom:15px}
+.local-tag{color:#83a293;font-size:9px;font-weight:700;letter-spacing:.14em;padding:7px 9px;border:1px solid rgba(65,242,161,.17);border-radius:7px;background:rgba(65,242,161,.035)}
+.local-tag span{color:var(--mint);margin-right:3px}
+.result-card{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:18px;min-height:239px;background:linear-gradient(135deg,rgba(15,44,36,.83),rgba(9,28,24,.92));padding:19px 19px 16px;box-shadow:inset 0 1px 0 rgba(255,255,255,.02)}
+.scenario-panel{margin-top:13px;padding:16px;border:1px solid rgba(151,221,191,.14);border-radius:16px;background:linear-gradient(145deg,rgba(13,37,30,.92),rgba(8,25,21,.9))}
+.scenario-heading h3{font-size:14px;letter-spacing:-.035em;margin:6px 0 0}
+.scenario-list{display:grid;gap:8px;margin-top:13px}
+.scenario-item{padding:11px 12px;border:1px solid rgba(151,221,191,.10);border-radius:11px;background:rgba(255,255,255,.018)}
+.scenario-item strong{display:block;font-size:10px;color:#d4e5db;margin-bottom:4px}
+.scenario-item p{margin:0;color:#91a99a;font-size:10px;line-height:1.5}
+.scenario-item[data-tone="up"]{border-left:2px solid var(--mint)}
+.scenario-item[data-tone="down"]{border-left:2px solid var(--coral)}
+.scenario-item[data-tone="wait"]{border-left:2px solid var(--amber)}
+.scenario-disclaimer{margin:11px 0 0;color:#9b8e70;font-size:9px;line-height:1.5}
+.result-card:before{content:"";position:absolute;top:0;left:0;height:2px;width:100%;background:linear-gradient(90deg,rgba(65,242,161,.65),transparent 85%);opacity:.5}
+.result-card.state-buy:before{background:linear-gradient(90deg,var(--mint),transparent)}
+.result-card.state-sell:before{background:linear-gradient(90deg,var(--coral),transparent)}
+.result-card.state-wait:before{background:linear-gradient(90deg,var(--amber),transparent)}
+.result-topline{display:flex;align-items:center;gap:8px;min-height:13px;color:#86a395;font-size:9px;letter-spacing:.14em;font-weight:700}
+.result-indicator{width:6px;height:6px;background:#668174;border-radius:50%}
+.state-buy .result-indicator{background:var(--mint);box-shadow:0 0 9px rgba(65,242,161,.6)}
+.state-sell .result-indicator{background:var(--coral);box-shadow:0 0 9px rgba(255,126,120,.55)}
+.state-wait .result-indicator{background:var(--amber);box-shadow:0 0 9px rgba(244,196,106,.55)}
+.result-time{margin-left:auto;color:#617a6e;letter-spacing:.02em;font:10px ui-monospace,SFMono-Regular,monospace}
+.result-main{display:flex;align-items:flex-start;gap:13px;margin:23px 0 15px}
+.result-icon{width:38px;height:38px;flex:none;display:grid;place-items:center;border:1px solid var(--line-strong);border-radius:12px;color:#a0b5a9;background:rgba(255,255,255,.025)}
+.result-icon svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.state-buy .result-icon{color:var(--mint);background:rgba(65,242,161,.08);border-color:rgba(65,242,161,.24)}
+.state-sell .result-icon{color:var(--coral);background:rgba(255,126,120,.08);border-color:rgba(255,126,120,.24)}
+.state-wait .result-icon{color:var(--amber);background:rgba(244,196,106,.07);border-color:rgba(244,196,106,.22)}
+.result-main h3{font-size:23px;line-height:1.15;letter-spacing:-.055em;margin:2px 0 6px;font-weight:600}
+.result-main p{color:#98afa1;font-size:11px;line-height:1.55;margin:0;max-width:320px}
+.confidence-wrap{margin:18px 0 15px;padding:13px 0 0;border-top:1px solid rgba(151,221,191,.09)}
+.confidence-head{display:flex;justify-content:space-between;align-items:center;color:#afc3b7;font-size:10px}
+.confidence-head strong{color:var(--mint);font-size:11px}
+.confidence-track{height:3px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden;margin:8px 0 5px}
+.confidence-track span{display:block;height:100%;width:0;background:linear-gradient(90deg,#148252,var(--mint));border-radius:3px;transition:width .8s cubic-bezier(.2,.8,.2,1)}
+.confidence-wrap small{font-size:9px;color:#70877b}
+.reason-list{display:grid;gap:8px;margin-top:19px}
+.reason-item{display:flex;align-items:flex-start;gap:9px;font-size:10px;line-height:1.45;color:#a8bcb0}
+.reason-bullet{width:5px;height:5px;border-radius:50%;margin-top:4px;flex:none;background:var(--mint);box-shadow:0 0 7px rgba(65,242,161,.5)}
+.reason-item.warn .reason-bullet{background:var(--amber);box-shadow:0 0 6px rgba(244,196,106,.5)}
+.empty-reasons{display:flex;align-items:center;gap:8px;color:#72897d;font-size:10px}
+.reason-orb{width:7px;height:7px;border:1px solid #7f988a;border-radius:50%;opacity:.7}
+.analysis-note{margin-top:14px;padding:10px 11px;border:1px solid rgba(244,196,106,.17);border-radius:10px;background:rgba(244,196,106,.045);color:#c9b37f;font-size:10px;line-height:1.55}
+.analysis-note:before{content:"i";display:inline-grid;place-items:center;width:14px;height:14px;border:1px solid currentColor;border-radius:50%;font-size:9px;font-weight:700;margin-right:7px}
+.action-area{margin-top:13px}
+.button-spark{font-size:15px}
+.button-arrow{margin-left:auto;font-size:17px;line-height:1;font-weight:400}
+.button-primary.button-wide{padding:0 17px}
+.post-actions{display:flex;justify-content:space-between;align-items:center;padding:7px 1px 0}
+.text-button{border:0;background:transparent;color:#a4c1b0;padding:8px 5px;display:inline-flex;align-items:center;gap:6px;font-size:10px;cursor:pointer}
+.text-button:hover{color:var(--mint)}
+.text-button-muted{color:#778b80}
+.processing-hint{margin:10px 0 0;display:flex;gap:6px;align-items:center;justify-content:center;color:#71877b;font-size:9px}
+.lock-icon{font-size:14px;line-height:10px;color:#8aa596}
+.how-card{margin-top:15px;border:1px solid var(--line);background:rgba(10,30,25,.62);border-radius:13px}
+.how-card summary{min-height:58px;padding:11px 13px;list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px}
+.how-card summary::-webkit-details-marker{display:none}
+.how-icon{display:grid;place-items:center;width:27px;height:27px;flex:none;border-radius:9px;color:var(--mint);font-size:14px;background:rgba(65,242,161,.08)}
+.how-card summary strong{display:block;color:#c4d5cb;font-size:10px;font-weight:600}
+.how-card summary small{display:block;color:#73897d;font-size:9px;margin-top:3px}
+.summary-chevron{margin-left:auto;color:#88a092;font-size:16px;transition:transform .2s}
+.how-card[open] .summary-chevron{transform:rotate(180deg)}
+.how-content{padding:0 14px 12px 50px;color:#8da296;font-size:10px;line-height:1.6}
+.how-content p{margin:0 0 8px}
+.how-content p:last-child{margin:0}
+.history-section{margin-top:49px;padding-top:22px;border-top:1px solid rgba(151,221,191,.10)}
+.history-heading{margin-bottom:13px}
+.clear-history-button{border:0;background:none;color:#8ba295;font:500 10px var(--font);cursor:pointer}
+.clear-history-button:hover{color:var(--coral)}
+.history-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.history-empty{grid-column:1/-1;display:flex;align-items:center;gap:10px;color:#748a7f;font-size:11px;padding:13px 2px 6px}
+.history-empty-mark{font-size:19px;color:#547365}
+.history-item{min-width:0;display:grid;grid-template-columns:59px minmax(0,1fr) 28px;align-items:center;gap:10px;padding:9px;border-radius:13px;background:rgba(11,33,29,.6);border:1px solid rgba(151,221,191,.10);cursor:pointer;transition:border-color .2s,transform .2s}
+.history-item:hover{border-color:rgba(65,242,161,.35);transform:translateY(-1px)}
+.history-thumb{width:59px;height:43px;object-fit:cover;border-radius:7px;background:#071511}
+.history-details{min-width:0}
+.history-state{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:10px;font-weight:600;color:#d3e4da}
+.history-date{display:block;margin-top:4px;color:#758d80;font:9px ui-monospace,SFMono-Regular,monospace}
+.history-delete{width:26px;height:26px;display:grid;place-items:center;border:0;border-radius:7px;color:#758c80;background:transparent;cursor:pointer;font-size:14px}
+.history-delete:hover{background:rgba(255,126,120,.1);color:var(--coral)}
+.risk-footer{display:flex;align-items:flex-start;gap:11px;margin-top:35px;padding:15px 16px;border-radius:13px;background:rgba(99,66,34,.10);border:1px solid rgba(244,196,106,.15);color:#a99a79}
+.risk-symbol{display:grid;place-items:center;width:17px;height:17px;flex:none;border-radius:50%;border:1px solid rgba(244,196,106,.55);font-size:10px;color:var(--amber);font-weight:700;margin-top:1px}
+.risk-footer p{font-size:10px;line-height:1.6;margin:0}
+.risk-footer strong{color:#d7bd82;font-weight:600}
+.toast{position:fixed;z-index:30;left:50%;bottom:24px;transform:translate(-50%,12px);opacity:0;pointer-events:none;max-width:calc(100vw - 28px);padding:12px 16px;border:1px solid rgba(65,242,161,.24);border-radius:12px;background:#112920;color:#d7eee1;font-size:11px;line-height:1.45;box-shadow:0 14px 40px rgba(0,0,0,.35);transition:opacity .2s,transform .2s}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.help-dialog{width:min(440px,calc(100vw - 28px));max-height:min(85vh,760px);padding:24px;border:1px solid rgba(65,242,161,.24);border-radius:20px;background:linear-gradient(150deg,#102921,#091a16 85%);color:var(--text);box-shadow:0 30px 90px rgba(0,0,0,.55)}
+.help-dialog::backdrop{background:rgba(0,9,7,.76);backdrop-filter:blur(7px)}
+.dialog-top{display:flex;align-items:center;margin-bottom:25px}
+.dialog-mark{width:36px;height:36px;display:grid;place-items:center;border-radius:11px;background:rgba(65,242,161,.08)}
+.dialog-mark svg{width:24px}
+.dialog-top .icon-button{margin-left:auto}
+.help-dialog h2{font-size:27px;line-height:1.1;letter-spacing:-.055em;margin:13px 0}
+.help-dialog h2 span{color:#8da79a}
+.help-dialog p{font-size:12px;line-height:1.72;color:#a2b6a9;margin:13px 0}
+.help-dialog .dialog-privacy{padding:11px;border:1px solid rgba(65,242,161,.12);border-radius:10px;color:#91bc9f;background:rgba(65,242,161,.04)}
+.help-dialog .button{margin-top:5px}
+.hidden{display:none!important}
+.visually-hidden{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+body.is-analyzing .result-card{animation:resultPulse 1.3s ease-in-out infinite alternate}
+body.is-analyzing .result-main h3{color:var(--mint)}
+body.is-analyzing #analyzeButton{pointer-events:none}
+.state-enter{animation:stateIn .45s cubic-bezier(.15,.9,.3,1) both}
+@keyframes radarSweep{0%{transform:rotate(15deg)}
+50%{transform:rotate(190deg)}
+100%{transform:rotate(375deg)}
+}
+@keyframes scanMove{to{top:87%}
+}
+@keyframes statusPulse{50%{box-shadow:0 0 0 5px rgba(65,242,161,.08),0 0 12px rgba(65,242,161,.5)}
+}
+@keyframes resultPulse{to{border-color:rgba(65,242,161,.35);box-shadow:0 0 28px rgba(65,242,161,.04)}
+}
+@keyframes stateIn{from{opacity:.35;transform:translateY(5px)}
+to{opacity:1;transform:translateY(0)}
+}
+@media(max-width:980px){.app-shell{padding-left:30px;padding-right:30px}
+.workspace{gap:23px;grid-template-columns:minmax(0,1.05fr) minmax(325px,.95fr)}
+.intro{padding-top:38px}
+.history-list{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:760px){.app-shell{padding:0 19px calc(25px + env(safe-area-inset-bottom))}
+.topbar{height:62px}
+.brand-mark{width:28px;height:28px}
+.brand-word{font-size:17px}
+.privacy-chip{position:static;transform:none;margin-left:auto;margin-right:10px;font-size:9px;padding:8px 9px;gap:6px}
+.help-button{margin-left:0;width:30px;height:30px}
+.intro{padding:34px 0 25px}
+.intro h1{font-size:clamp(41px,10.5vw,54px);margin:14px 0 11px}
+.intro-copy{font-size:12px;max-width:430px}
+.workspace{display:flex;flex-direction:column;gap:24px}
+.view-column,.readout-column{width:100%}
+.section-heading h2,.history-heading h2{font-size:16px}
+.camera-frame{aspect-ratio:1.16;border-radius:17px}
+.radar-art{width:43%}
+.camera-placeholder strong{font-size:13px}
+.camera-placeholder>span{font-size:10px}
+.capture-controls{gap:8px}
+.capture-controls .button{flex:1;padding:0 9px;min-height:47px;font-size:11px}
+.mobile-capture:not(.hidden){display:block}
+.result-card{min-height:0;padding:17px}
+.result-main{margin:19px 0 13px}
+.result-main h3{font-size:22px}
+.result-main p{font-size:11px}
+.readout-column .section-heading{margin-bottom:13px}
+.action-area{margin-top:11px}
+.button-wide{min-height:52px}
+.how-card{margin-top:12px}
+.history-section{margin-top:35px;padding-top:20px}
+.history-list{grid-template-columns:minmax(0,1fr)}
+.history-item{grid-template-columns:57px minmax(0,1fr) 30px}
+.history-thumb{width:57px;height:42px}
+.risk-footer{margin-top:26px;padding:13px}
+.risk-footer p{font-size:9px}
+.processing-hint{font-size:9px}
+}
+@media(max-width:370px){.app-shell{padding-left:14px;padding-right:14px}
+.privacy-chip{font-size:0;padding:8px}
+.privacy-chip .privacy-dot{width:7px;height:7px}
+.intro h1{font-size:39px}
+.camera-frame{aspect-ratio:1.04}
+.capture-controls .button{font-size:10px}
+.capture-controls .button svg{width:16px}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+<div class="app-shell">
+<header class="topbar">
+<a class="brand" href="/" aria-label="OlhoVivo, início">
+<span class="brand-mark" aria-hidden="true">
+<svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
+<circle cx="32" cy="32" r="20" stroke="#41f2a1" stroke-opacity=".42" stroke-width="2.4"/>
+<path d="M11 32s7-12 21-12 21 12 21 12-7 12-21 12S11 32 11 32Z" stroke="#41f2a1" stroke-width="3"/>
+<circle cx="32" cy="32" r="7" stroke="#41f2a1" stroke-width="2.5"/>
+<circle cx="32" cy="32" r="2.7" fill="#41f2a1"/>
+<path d="M32 5v7m0 40v7M5 32h7m40 0h7" stroke="#41f2a1" stroke-width="2" stroke-linecap="round"/>
+</svg>
+</span>
+<span class="brand-word">olho<span>.</span>vivo</span>
+</a>
+<div class="privacy-chip">
+<span class="privacy-dot" aria-hidden="true">
+</span>
+<span>Imagem fica neste aparelho</span>
+</div>
+<button id="helpButton" class="icon-button help-button" type="button" aria-label="Sobre esta leitura" title="Sobre esta leitura">i</button>
+</header>
+<main id="mainContent">
+<section class="intro" aria-labelledby="pageTitle">
+<div class="eyebrow">
+<span class="eyebrow-line">
+</span> ASSISTENTE VISUAL · EXPERIMENTAL</div>
+<h1 id="pageTitle">Leia o gráfico.<br />
+<span>Não o futuro.</span>
+</h1>
+<p class="intro-copy">Aponte a câmera para um gráfico em outra tela ou importe um print. Veja sinais visuais e cenários condicionais — estimativas locais, não previsões garantidas.</p>
+</section>
+<section class="workspace" aria-label="Captura e resultado">
+<div class="view-column">
+<div class="section-heading">
+<div>
+<span class="step-label">01 / OBSERVAR</span>
+<h2>Coloque o gráfico na mira</h2>
+</div>
+<span id="cameraStatus" class="status-pill">
+<span class="status-ring">
+</span>
+<span>Pronto</span>
+</span>
+</div>
+<div id="cameraFrame" class="camera-frame">
+<video id="cameraVideo" class="camera-media hidden" autoplay muted playsinline aria-label="Visualização da câmera">
+</video>
+<img id="capturedImage" class="camera-media hidden" alt="Imagem do gráfico selecionado" />
+<canvas id="overlayCanvas" class="overlay-canvas hidden" aria-hidden="true">
+</canvas>
+<div id="cameraPlaceholder" class="camera-placeholder">
+<div class="radar-art" aria-hidden="true">
+<div class="radar-ring radar-ring-one">
+</div>
+<div class="radar-ring radar-ring-two">
+</div>
+<div class="radar-cross radar-cross-x">
+</div>
+<div class="radar-cross radar-cross-y">
+</div>
+<svg class="mini-chart" viewBox="0 0 240 112" role="presentation">
+<path d="M5 88H235M5 56H235M5 24H235" class="chart-grid" />
+<path d="M12 72 38 65 60 78 83 43 107 50 127 32 150 40 173 18 197 34 226 12" class="chart-line" />
+<circle cx="226" cy="12" r="4" class="chart-point" />
+</svg>
+<span class="radar-sweep">
+</span>
+</div>
+<strong>Sua imagem aparece aqui</strong>
+<span>Use a câmera em outra tela ou escolha um print salvo.</span>
+</div>
+<div class="viewfinder" aria-hidden="true">
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+</div>
+<div id="scanLine" class="scan-line hidden" aria-hidden="true">
+</div>
+<div id="liveSignal" class="live-signal hidden" aria-live="off">
+<span class="live-signal-pulse" aria-hidden="true">
+</span>
+<span class="live-signal-copy">
+<small>LEITURA VISUAL · AO VIVO</small>
+<strong id="liveSignalTitle">Preparando leitura…</strong>
+</span>
+</div>
+<div class="frame-caption">
+<span class="frame-dot">
+</span>
+<span id="frameCaption">RETÍCULA DE ENQUADRAMENTO</span>
+</div>
+</div>
+<div class="capture-controls">
+<button id="cameraButton" class="button button-secondary" type="button">
+<svg viewBox="0 0 24 24" aria-hidden="true">
+<path d="M4 8.5A2.5 2.5 0 0 1 6.5 6H9l1.3-2h3.4L15 6h2.5A2.5 2.5 0 0 1 20 8.5v8a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5v-8Z"/>
+<circle cx="12" cy="12.5" r="3.2"/>
+</svg>
+<span>Abrir câmera</span>
+</button>
+<button id="importButton" class="button button-secondary" type="button">
+<svg viewBox="0 0 24 24" aria-hidden="true">
+<path d="M4 16.5v2A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5v-2M12 15V4m0 0L8 8m4-4 4 4"/>
+</svg>
+<span>Importar print</span>
+</button>
+<input id="imageInput" class="visually-hidden" type="file" accept="image/*" capture="environment" />
+</div>
+<div class="mobile-capture hidden" id="mobileCaptureRow">
+<button id="captureButton" class="button button-primary button-wide" type="button">
+<svg viewBox="0 0 24 24" aria-hidden="true">
+<circle cx="12" cy="12" r="7.5"/>
+<circle cx="12" cy="12" r="3.5"/>
+</svg>
+<span>Capturar imagem</span>
+</button>
+</div>
+</div>
+<aside class="readout-column" aria-label="Leitura e análise">
+<div class="section-heading result-heading">
+<div>
+<span class="step-label">02 / INTERPRETAR</span>
+<h2>Leitura visual</h2>
+</div>
+<span class="local-tag">
+<span aria-hidden="true">◉</span> LOCAL</span>
+</div>
+<div id="resultCard" class="result-card state-idle" aria-live="polite" aria-atomic="false">
+<div class="result-topline">
+<span class="result-indicator" aria-hidden="true">
+</span>
+<span id="resultKicker">AGUARDANDO IMAGEM</span>
+<span class="result-time" id="resultTime">
+</span>
+</div>
+<div class="result-main">
+<div class="result-icon" id="resultIcon" aria-hidden="true">
+<svg viewBox="0 0 24 24">
+<circle cx="12" cy="12" r="8.5"/>
+<path d="M12 8v4.5m0 3h.01"/>
+</svg>
+</div>
+<div>
+<h3 id="resultTitle">Pronto para observar</h3>
+<p id="resultSummary">Capture ou importe uma imagem nítida de um gráfico para começar.</p>
+</div>
+</div>
+<div id="confidenceWrap" class="confidence-wrap hidden">
+<div class="confidence-head">
+<span>Consistência do padrão visual</span>
+<strong id="confidenceValue">—</strong>
+</div>
+<div class="confidence-track" role="progressbar" aria-label="Legibilidade da leitura" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+<span id="confidenceBar">
+</span>
+</div>
+<small>Estimativa geométrica; não é chance de acerto ou lucro.</small>
+</div>
+<div id="reasonList" class="reason-list empty-reasons">
+<span class="reason-orb">
+</span>
+<span>Sem análise por enquanto</span>
+</div>
+<div id="analysisNote" class="analysis-note hidden">
+</div>
+</div>
+<section id="scenarioPanel" class="scenario-panel hidden" aria-labelledby="scenarioTitle">
+<div class="scenario-heading">
+<span class="step-label">CENÁRIOS CONDICIONAIS</span>
+<h3 id="scenarioTitle">Possibilidades de movimento</h3>
+</div>
+<div id="scenarioList" class="scenario-list">
+</div>
+<p class="scenario-disclaimer">São hipóteses visuais, não ordens nem níveis de preço. O app não calcula entrada, stop, alvo ou chance de lucro.</p>
+</section>
+<div class="action-area">
+<button id="analyzeButton" class="button button-primary button-wide" type="button" disabled>
+<span class="button-spark" aria-hidden="true">✳</span>
+<span>Analisar imagem</span>
+<span class="button-arrow" aria-hidden="true">↗</span>
+</button>
+<div id="postActions" class="post-actions hidden">
+<button id="retakeButton" class="text-button" type="button">↻ <span>Trocar imagem</span>
+</button>
+<button id="clearButton" class="text-button text-button-muted" type="button">Limpar</button>
+</div>
+<p class="processing-hint">
+<span class="lock-icon" aria-hidden="true">⌑</span> A análise acontece no aparelho. Nenhum envio de ordem.</p>
+</div>
+<details class="how-card">
+<summary>
+<span class="how-icon" aria-hidden="true">↗</span>
+<span>
+<strong>O que esta leitura faz — e o que não faz</strong>
+<small>Toque para entender</small>
+</span>
+<span class="summary-chevron" aria-hidden="true">⌄</span>
+</summary>
+<div class="how-content">
+<p>Observa cores e formas visíveis na imagem. Não identifica preço em tempo real, ativo ou período, e não substitui uma estratégia testada.</p>
+<p>“Possível compra” e “Possível venda” são apenas estados heurísticos. Confirme tudo em uma fonte de dados confiável; a decisão e qualquer operação são suas.</p>
+</div>
+</details>
+</aside>
+</section>
+<section class="history-section" aria-labelledby="historyTitle">
+<div class="history-heading">
+<div>
+<span class="step-label">03 / REVISITAR</span>
+<h2 id="historyTitle">Sessão recente</h2>
+</div>
+<button id="clearHistoryButton" class="clear-history-button hidden" type="button">Limpar histórico</button>
+</div>
+<div id="historyList" class="history-list">
+<div class="history-empty">
+<span class="history-empty-mark" aria-hidden="true">◎</span>
+<span>Suas análises deste aparelho aparecem aqui.</span>
+</div>
+</div>
+</section>
+<footer class="risk-footer">
+<span class="risk-symbol" aria-hidden="true">!</span>
+<p>
+<strong>Day trade envolve risco elevado.</strong> Esta leitura automática é experimental e informativa. Não prevê o futuro, não garante lucro e não representa recomendação financeira. Você pode perder parte ou todo o valor investido.</p>
+</footer>
+</main>
+<div id="toast" class="toast" role="status" aria-live="polite">
+</div>
+<dialog id="helpDialog" class="help-dialog">
+<div class="dialog-top">
+<span class="dialog-mark">
+<svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
+<circle cx="32" cy="32" r="20" stroke="#41f2a1" stroke-opacity=".42" stroke-width="2.4"/>
+<path d="M11 32s7-12 21-12 21 12 21 12-7 12-21 12S11 32 11 32Z" stroke="#41f2a1" stroke-width="3"/>
+<circle cx="32" cy="32" r="7" stroke="#41f2a1" stroke-width="2.5"/>
+<circle cx="32" cy="32" r="2.7" fill="#41f2a1"/>
+<path d="M32 5v7m0 40v7M5 32h7m40 0h7" stroke="#41f2a1" stroke-width="2" stroke-linecap="round"/>
+</svg>
+</span>
+<button id="closeHelpButton" class="icon-button" type="button" aria-label="Fechar">×</button>
+</div>
+<span class="step-label">SOBRE O OLHOVIVO</span>
+<h2>Um radar visual.<br />
+<span>Não uma bola de cristal.</span>
+</h2>
+<p>O OlhoVivo lê cores e distribuição de formas no aparelho e reavalia a imagem da câmera em intervalos curtos. A câmera funciona melhor apontada para outra tela; se o gráfico estiver neste mesmo celular, use <strong>Importar print</strong>.</p>
+<p>Os estados de compra/venda e as possibilidades condicionais são heurísticas visuais experimentais. A câmera não lê cotações, preços ou período do gráfico, não prevê o instante de operar e não envia ordens.</p>
+<p class="dialog-privacy">Privacidade: a imagem não sai deste aparelho. O histórico é local e pode ser apagado a qualquer momento.</p>
+<button id="dismissHelpButton" class="button button-primary button-wide" type="button">Entendi</button>
+</dialog>
+</div>
+<script>
+(()=>{"use strict";const e=e=>document.querySelector(e),t={video:e("#cameraVideo"),image:e("#capturedImage"),
+overlay:e("#overlayCanvas"),placeholder:e("#cameraPlaceholder"),frame:e("#cameraFrame"),frameCaption:e("#frameCaption"),
+cameraStatus:e("#cameraStatus"),cameraButton:e("#cameraButton"),importButton:e("#importButton"),input:e("#imageInput"),
+captureButton:e("#captureButton"),captureRow:e("#mobileCaptureRow"),analyzeButton:e("#analyzeButton"),
+retakeButton:e("#retakeButton"),clearButton:e("#clearButton"),postActions:e("#postActions"),resultCard:e("#resultCard"),
+resultKicker:e("#resultKicker"),resultTime:e("#resultTime"),resultTitle:e("#resultTitle"),
+resultSummary:e("#resultSummary"),resultIcon:e("#resultIcon"),confidenceWrap:e("#confidenceWrap"),
+confidenceValue:e("#confidenceValue"),confidenceBar:e("#confidenceBar"),confidenceTrack:e(".confidence-track"),
+reasonList:e("#reasonList"),analysisNote:e("#analysisNote"),scanLine:e("#scanLine"),liveSignal:e("#liveSignal"),
+liveSignalTitle:e("#liveSignalTitle"),scenarioPanel:e("#scenarioPanel"),scenarioList:e("#scenarioList"),
+historyList:e("#historyList"),clearHistoryButton:e("#clearHistoryButton"),toast:e("#toast"),helpDialog:e("#helpDialog"),
+helpButton:e("#helpButton"),closeHelpButton:e("#closeHelpButton"),dismissHelpButton:e("#dismissHelpButton")
+},a="analyses";let n,i=null,o=null,r=null,s=null,l=null,c=[],d=null,u=0;function m(e){t.toast.textContent=e,
+t.toast.classList.add("show"),clearTimeout(l),l=setTimeout(()=>t.toast.classList.remove("show"),3200)}
+function h(e,a=!1){t.cameraStatus.lastElementChild.textContent=e,t.cameraStatus.classList.toggle("is-live",a)}
+function p(){u+=1,d&&clearTimeout(d),d=null,i&&i.getTracks().forEach(e=>e.stop()),i=null,t.video.pause(),
+t.video.srcObject=null,t.video.classList.add("hidden"),t.captureRow.classList.add("hidden"),
+t.liveSignal.classList.add("hidden"),t.liveSignal.classList.remove("is-buy","is-sell"),
+t.cameraButton.querySelector("span").textContent="Abrir câmera"}async function g(){
+if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia){v();try{i=await navigator.mediaDevices.getUserMedia({
+video:{facingMode:{ideal:"environment"}},audio:!1});const e=i;e.getTracks().forEach(t=>t.addEventListener("ended",()=>{
+i===e&&(v(),h("Câmera pausada"))},{once:!0})),t.video.srcObject=i,t.video.classList.remove("hidden"),
+t.placeholder.classList.add("hidden"),t.overlay.classList.add("hidden"),t.image.classList.add("hidden"),
+t.frameCaption.textContent="ENQUADRE O GRÁFICO INTEIRO",
+h("Câmera ativa",!0),t.cameraButton.querySelector("span").textContent="Fechar câmera",
+t.captureRow.classList.remove("hidden"),await t.video.play(),function(){const e=++u
+;t.liveSignal.classList.remove("hidden","is-buy","is-sell"),t.liveSignalTitle.textContent="Preparando leitura…"
+;const a=async()=>{
+if(e===u&&i)if(t.video.readyState<HTMLMediaElement.HAVE_CURRENT_DATA||!t.video.videoWidth)d=window.setTimeout(a,500);else try{
+const a=Math.min(1,720/t.video.videoWidth),n=document.createElement("canvas")
+;n.width=Math.max(1,Math.round(t.video.videoWidth*a)),n.height=Math.max(1,Math.round(t.video.videoHeight*a)),
+n.getContext("2d",{willReadFrequently:!0}).drawImage(t.video,0,0,n.width,n.height)
+;const o=await new Promise(e=>n.toBlob(e,"image/jpeg",.78));if(!o)throw new Error("Quadro indisponível")
+;const r=await x(o);if(e!==u||!i)return;M(r,{draw:!0,live:!0}),t.liveSignal.classList.toggle("is-buy","buy"===r.state),
+t.liveSignal.classList.toggle("is-sell","sell"===r.state),
+t.liveSignalTitle.textContent="buy"===r.state?"Possível compra · viés visual de alta":"sell"===r.state?"Possível venda · viés visual de baixa":"Sem sinal claro · aguardar"
+}catch(a){e===u&&(t.liveSignalTitle.textContent="Leitura pausada · ajuste o enquadramento",h("Câmera ativa",!0))
+}finally{e===u&&i&&(d=window.setTimeout(a,2400))}};a()
+}(),m("Leitura visual ao vivo iniciada. Mantenha o gráfico inteiro dentro da retícula.")}catch(e){p(),v(),
+h("Câmera indisponível"),
+!e||"NotAllowedError"!==e.name&&"PermissionDeniedError"!==e.name?m("Não foi possível abrir a câmera. Tente importar uma captura de tela."):m("Permita o acesso à câmera nas configurações do navegador, ou importe uma imagem.")
+}}else m("A câmera precisa de um navegador compatível em conexão segura (HTTPS). Você pode importar um print.")}
+function v(e=!0){p(),r&&URL.revokeObjectURL(r),r=null,o=null,s=null,t.image.removeAttribute("src"),
+t.image.classList.add("hidden"),t.overlay.classList.add("hidden"),t.overlay.width=0,
+t.placeholder.classList.remove("hidden"),t.frameCaption.textContent="RETÍCULA DE ENQUADRAMENTO",
+t.analyzeButton.disabled=!0,t.analyzeButton.querySelector("span:nth-child(2)").textContent="Analisar imagem",
+t.postActions.classList.add("hidden"),h("Pronto"),e&&y()}function f(e,a="Imagem carregada"){p(),
+r&&URL.revokeObjectURL(r),o=e,r=URL.createObjectURL(e),s=null,t.image.src=r,t.image.classList.remove("hidden"),
+t.image.onload=()=>{t.placeholder.classList.add("hidden"),t.overlay.classList.add("hidden"),
+t.frameCaption.textContent=`${a.toUpperCase()} · PRONTA PARA ANÁLISE`
+},t.image.onerror=()=>m("Não consegui abrir essa imagem. Tente outro arquivo."),t.analyzeButton.disabled=!1,
+t.analyzeButton.querySelector("span:nth-child(2)").textContent="Analisar imagem",
+t.postActions.classList.remove("hidden"),h("Imagem pronta"),y(!0)}function y(e=!1){t.analyzeButton.disabled=!e||!o,
+t.resultCard.className="result-card state-idle",t.resultKicker.textContent=e?"IMAGEM CAPTURADA":"AGUARDANDO IMAGEM",
+t.resultTime.textContent="",t.resultTitle.textContent=e?"Confira o enquadramento":"Pronto para observar",
+t.resultSummary.textContent=e?"Toque em analisar para iniciar uma leitura visual aproximada.":"Capture ou importe uma imagem nítida de um gráfico para começar.",
+t.resultIcon.innerHTML='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 8v4.5m0 3h.01"/></svg>',
+t.confidenceWrap.classList.add("hidden"),t.reasonList.className="reason-list empty-reasons",
+t.reasonList.innerHTML='<span class="reason-orb"></span><span>Sem análise por enquanto</span>',
+t.analysisNote.classList.add("hidden"),t.scenarioPanel.classList.add("hidden"),t.scenarioList.replaceChildren(),
+t.resultCard.setAttribute("aria-live","polite")}async function w(e,t){
+const i=await("indexedDB"in window?n||(n=new Promise((e,t)=>{const n=indexedDB.open("olhovivo-local",1)
+;n.onupgradeneeded=()=>{const e=n.result;e.objectStoreNames.contains(a)||e.createObjectStore(a,{keyPath:"id"})},
+n.onsuccess=()=>e(n.result),n.onerror=()=>t(n.error||new Error("Falha ao abrir histórico"))}),
+n):Promise.reject(new Error("IndexedDB indisponível")));return new Promise((n,o)=>{
+const r=i.transaction(a,e),s=t(r.objectStore(a));r.oncomplete=()=>n(s?s.result:void 0),
+r.onerror=()=>o(r.error||new Error("Falha no histórico")),r.onabort=()=>o(r.error||new Error("Operação cancelada"))})}
+async function L(e,t,a){const n=await createImageBitmap(e),i=Math.min(1,t/n.width),o=document.createElement("canvas")
+;return o.width=Math.max(1,Math.round(n.width*i)),o.height=Math.max(1,Math.round(n.height*i)),
+o.getContext("2d").drawImage(n,0,0,o.width,o.height),n.close(),new Promise(e=>o.toBlob(e,"image/jpeg",a))}
+function b(e,t,a){return t>1.18*e&&t>1.08*a&&t-e>22?"green":e>1.18*t&&e>1.08*a&&e-t>20?"red":null}async function x(e){
+const t=await createImageBitmap(e),a=Math.min(1,900/t.width,900/t.height),n=Math.max(1,Math.round(t.width*a)),i=Math.max(1,Math.round(t.height*a)),o=document.createElement("canvas")
+;o.width=n,o.height=i;const r=o.getContext("2d",{willReadFrequently:!0});r.drawImage(t,0,0,n,i),t.close()
+;const s=r.getImageData(0,0,n,i),{segments:l,totalGreen:c,totalRed:d}=function(e,t,a){
+const n=Math.floor(.04*t),i=Math.ceil(.96*t),o=Math.floor(.06*a),r=Math.ceil(.91*a),s=r-o,l=new Uint16Array(i-n),c=new Uint16Array(i-n),d=new Uint16Array(i-n),u=new Uint16Array(i-n).fill(a),m=new Uint16Array(i-n),h=new Uint16Array(i-n),p=new Uint16Array(i-n),g=new Int16Array(i-n).fill(-2)
+;let v=0,f=0;const y=e.data,w=new Uint16Array(s),L=new Uint8Array(s),x=Math.round(.55*(i-n));for(let e=o;e<r;e+=1){
+for(let a=n;a<i;a+=1){const n=4*(e*t+a);y[n+3]>=160&&b(y[n],y[n+1],y[n+2])&&(w[e-o]+=1)}w[e-o]>=x&&(L[e-o]=1)}
+for(let e=o;e<r;e+=1)if(!L[e-o])for(let a=n;a<i;a+=1){const i=4*(e*t+a);if(y[i+3]<160)continue
+;const o=b(y[i],y[i+1],y[i+2]);if(!o)continue;const r=a-n;l[r]+=1,p[r]=g[r]===e-1?p[r]+1:1,g[r]=e,
+h[r]=Math.max(h[r],p[r]),e<u[r]&&(u[r]=e),e>m[r]&&(m[r]=e),"green"===o?(v+=1,c[r]+=1):(f+=1,d[r]+=1)}
+const A=Math.max(3,Math.round(.006*s)),M=Math.max(6,Math.round(.015*s)),B=e=>l[e]>=A&&h[e]>=M,C=[];let E=-1,S=-1
+;for(let e=0;e<=l.length;e+=1)if(e<l.length&&B(e))-1===E&&(E=e),S=e;else if(-1!==E){const e=S-E+1;let i=a,o=0,r=0,s=0
+;for(let e=E;e<=S;e+=1)i=Math.min(i,u[e]),o=Math.max(o,m[e]),r+=c[e],s+=d[e];e<=Math.max(24,.035*t)&&o-i>=6&&C.push({
+x:n+(E+S)/2,top:i,bottom:o,color:r>=s?"green":"red"}),E=-1,S=-1}return{segments:C,totalGreen:v,totalRed:f}
+}(s,n,i),u=l.filter(e=>"green"===e.color).length,m=l.length-u,h=function(e){
+const t=e.slice(1).map((t,a)=>t.x-e[a].x).filter(e=>e>0);if(t.length<2)return 0
+;const a=t.reduce((e,t)=>e+t,0)/t.length,n=t.reduce((e,t)=>e+(t-a)**2,0)/t.length;return Math.max(0,1-Math.sqrt(n)/a)
+}(l),p=c+d>=n*i*.0014,g=l.length>=12&&u>=2&&m>=2&&h>=.42;if(!p||!g)return{state:"wait",
+confidence:Math.min(32,Math.max(12,Math.round(2*l.length))),width:n,height:i,segments:l,
+title:"Aguardar — estrutura insuficiente",
+summary:"Não encontrei evidência visual suficiente de um conjunto regular de candles. Nenhum viés de compra/venda foi calculado.",
+reasons:[`${l.length} agrupamentos visuais encontrados; são necessários pelo menos 12 para tentar uma leitura direcional.`,`Regularidade geométrica estimada: ${Math.round(100*h)}%.`,"Uma foto comum ou outro desenho verde/vermelho pode parecer um gráfico para este leitor."],
+note:"Os filtros reduzem erros, mas não comprovam que a imagem seja um gráfico nem que contenha dados corretos. Tente um print limpo; valide a leitura por conta própria."
+};const v=function(e,t){const a=e.length,n=e.reduce((e,t)=>e+t.x,0)/a,i=e.reduce((e,t)=>e+(t.top+t.bottom)/2,0)/a
+;let o=0,r=0;for(const t of e){const e=t.x-n;o+=e*((t.top+t.bottom)/2-i),r+=e*e}const s=r?o/r:0,l=s*(e[a-1].x-e[0].x)/t
+;return{slope:s,change:l,direction:l<-.075?"alta":l>.075?"baixa":"lateral"}
+}(l,i),f=l.slice(-Math.min(7,l.length)),y=f.filter(e=>"green"===e.color).length,w=f.length-y,L=f[f.length-1],x="alta"===v.direction&&y/f.length>=.58&&"green"===L.color,A="baixa"===v.direction&&w/f.length>=.58&&"red"===L.color
+;let M=x?"buy":A?"sell":"wait"
+;const B=1-Math.abs(u-m)/l.length,C=Math.min(1,l.length/24),E=Math.min(70,Math.round(25+25*h+25*C+10*B)),S=e=>`${Math.round(100*Math.abs(e))}%`,T=[`${l.length} agrupamentos de candles coloridos localizados na imagem.`,"alta"===v.direction?`Geometria geral do trecho sugere inclinação visual de alta (~${S(v.change)} da altura).`:"baixa"===v.direction?`Geometria geral do trecho sugere inclinação visual de baixa (~${S(v.change)} da altura).`:"A inclinação visual do trecho está lateral ou não é clara.",`${y} de ${f.length} candles mais recentes parecem verdes; ${w} parecem vermelhos.`]
+;"lateral"===v.direction&&T.push("Sem inclinação visual suficiente, o estado permanece em Aguardar."),
+T.push("Indicadores técnicos e números da escala não foram confirmados por OCR."),
+"buy"===M&&T.push("O último candle é só uma referência visual; esta leitura não calcula gatilho, stop ou alvo de compra."),
+"sell"===M&&T.push("O último candle é só uma referência visual; esta leitura não calcula gatilho, stop ou alvo de venda."),
+"wait"===M&&T.push("Nenhum ponto de entrada, saída, stop ou alvo foi inferido.");return{state:M,confidence:E,width:n,
+height:i,segments:l,trend:v,title:"buy"===M?"Possível compra":"sell"===M?"Possível venda":"Aguardar confirmação",
+summary:"buy"===M?"O trecho visível sugere viés de alta. Isso não identifica preço ou instante ideal de entrada.":"sell"===M?"O trecho visível sugere viés de baixa. Isso não identifica preço ou instante ideal de saída.":"O padrão visível não aponta uma direção clara o bastante para esta heurística.",
+reasons:T,
+note:"Estimativa de geometria da imagem, não cotação ao vivo. Teto/base são extremos visuais aproximados — não são níveis de suporte, resistência, stop, alvo ou preço operacional validados.",
+totalGreen:c,totalRed:d}}function A(e){
+const a=t.overlay,n=a.getContext("2d"),i=t.frame.getBoundingClientRect(),o=Math.min(2,window.devicePixelRatio||1)
+;a.width=Math.max(1,Math.round(i.width*o)),a.height=Math.max(1,Math.round(i.height*o)),n.scale(o,o),
+n.clearRect(0,0,i.width,i.height)
+;const r=Math.min(i.width/e.width,i.height/e.height),s=e.width*r,l=e.height*r,c=(i.width-s)/2,d=(i.height-l)/2,u=e.segments.reduce((e,t)=>Math.min(e,t.top),e.height)*r+d,m=e.segments.reduce((e,t)=>Math.max(e,t.bottom),0)*r+d,h=e.segments[e.segments.length-1],p=c+.05*s,g=c+.95*s
+;n.setLineDash([4,5]),n.lineWidth=1,n.strokeStyle="rgba(244,196,106,.75)",n.beginPath(),n.moveTo(p,u),n.lineTo(g,u),
+n.stroke(),n.strokeStyle="rgba(65,242,161,.72)",n.beginPath(),n.moveTo(p,m),n.lineTo(g,m),n.stroke(),n.setLineDash([])
+;const v=c+h.x*r,f=d+(h.top+h.bottom)/2*r;n.beginPath(),n.arc(v,f,6,0,2*Math.PI),n.fillStyle="rgba(65,242,161,.9)",
+n.fill(),n.beginPath(),n.arc(v,f,12,0,2*Math.PI),n.strokeStyle="rgba(65,242,161,.55)",n.lineWidth=1,n.stroke(),
+n.font="600 9px system-ui, sans-serif",n.textBaseline="bottom",n.fillStyle="rgba(244,196,106,.95)",
+n.fillText("TETO VISUAL*",p+3,Math.max(11,u-5)),n.textBaseline="top",n.fillStyle="rgba(65,242,161,.98)",
+n.fillText("BASE VISUAL*",p+3,Math.min(i.height-14,m+5)),n.textBaseline="middle",n.fillStyle="rgba(225,248,236,.96)"
+;const y=v>.62*i.width?Math.max(8,v-102):v+10,w="wait"===e.state?"CANDLE OBSERVADO":"REFERÊNCIA CANDIDATA*"
+;n.fillText(w,y,f),a.classList.remove("hidden")}function M(e,{savedTime:a=new Date,draw:n=!0,live:i=!1}={}){s=e
+;const o=e.state;t.resultCard.className=`result-card state-${o}${i?"":" state-enter"}`,
+t.resultCard.setAttribute("aria-live",i?"off":"polite"),
+t.resultKicker.textContent="buy"===o?"VIÉS VISUAL · ALTA":"sell"===o?"VIÉS VISUAL · BAIXA":"SEM SINAL CLARO",
+t.resultTime.textContent=i?"AO VIVO":a.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}),
+t.resultTitle.textContent=e.title,t.resultSummary.textContent=e.summary,t.resultIcon.innerHTML=function(e){
+return"buy"===e?'<svg viewBox="0 0 24 24"><path d="M5 15.5 10 10l3.5 3.5L20 6.5"/><path d="M14.5 6.5H20v5.5"/></svg>':"sell"===e?'<svg viewBox="0 0 24 24"><path d="M5 8.5 10 14l3.5-3.5L20 17.5"/><path d="M14.5 17.5H20V12"/></svg>':'<svg viewBox="0 0 24 24"><path d="M5 12h14"/><circle cx="12" cy="12" r="8.5"/></svg>'
+}(o),t.confidenceWrap.classList.remove("hidden"),t.confidenceValue.textContent=`${e.confidence}%`,
+t.confidenceTrack.setAttribute("aria-valuenow",String(e.confidence)),requestAnimationFrame(()=>{
+t.confidenceBar.style.width=`${e.confidence}%`}),t.reasonList.className="reason-list",
+t.reasonList.replaceChildren(...e.reasons.map((t,a)=>{const n=document.createElement("div")
+;n.className="reason-item"+(a===e.reasons.length-1?" warn":"");const i=document.createElement("span")
+;i.className="reason-bullet",i.setAttribute("aria-hidden","true");const o=document.createElement("span")
+;return o.textContent=t,n.append(i,o),n})),t.analysisNote.textContent=e.note,t.analysisNote.classList.remove("hidden"),
+t.frameCaption.textContent="EXTREMOS VISUAIS APROXIMADOS · SEM ESCALA DE PREÇO",
+n&&e.segments.length>0?A(e):n&&function(){const e=t.overlay,a=e.getContext("2d");a.setTransform(1,0,0,1,0,0),
+a.clearRect(0,0,e.width,e.height),e.classList.add("hidden")}(),function(e){const a="wait"===e.state?[{tone:"wait",
+title:"Sem direção visual clara",
+text:"A estrutura atual não sustenta um viés de alta ou baixa. O cenário observado é permanecer sem leitura direcional até surgir um padrão mais legível."
+},{tone:"wait",title:"O que observar",
+text:"Reenquadre a área dos candles e confira a leitura em uma fonte de mercado confiável. A imagem não informa preço, período nem fechamento do candle."
+}]:[{tone:"buy"===e.state?"up":"down",title:"Continuidade visual de "+("buy"===e.state?"alta":"baixa"),
+text:"Hipótese condicional: se os próximos candles mantiverem a inclinação visível sem perder a região recente, o viés observado pode persistir. Isso não define entrada nem momento de operação."
+},{tone:"buy"===e.state?"down":"up",title:"Invalidação / movimento contrário",
+text:"Se novos candles avançarem contra a inclinação recente, esta hipótese visual perde força e deve ser reavaliada. Não é uma ordem de saída nem um stop calculado."
+},{tone:"wait",title:"Lateralização",
+text:"Se os próximos candles alternarem dentro da faixa visível, a leitura tende a ficar inconclusiva. Não há cenário direcional claro."
+}];t.scenarioList.replaceChildren(...a.map(e=>{const t=document.createElement("article");t.className="scenario-item",
+t.dataset.tone=e.tone;const a=document.createElement("strong");a.textContent=e.title;const n=document.createElement("p")
+;return n.textContent=e.text,t.append(a,n),t})),t.scenarioPanel.classList.remove("hidden")}(e),
+t.postActions.classList.remove("hidden"),h(i?"Leitura ao vivo":"Leitura pronta",i)}async function B(e,t){try{
+const a=await async function(e,t){const[a,n]=await Promise.all([L(e,900,.76),L(e,280,.55)])
+;if(!a||!n)throw new Error("A miniatura não foi criada.");return{
+id:`${Date.now()}-${Math.random().toString(16).slice(2)}`,createdAt:(new Date).toISOString(),state:t.state,
+title:t.title,confidence:t.confidence,analysis:t,imageBlob:a,thumbBlob:n}}(e,t);await w("readwrite",e=>e.put(a))
+;const n=await w("readonly",e=>e.getAll());n.sort((e,t)=>t.createdAt.localeCompare(e.createdAt))
+;for(const e of n.slice(8))await w("readwrite",t=>t.delete(e.id));await S()}catch(e){
+m("A leitura terminou, mas não foi possível guardar no histórico local.")}}function C(e){const t=new Date(e),a=new Date
+;return t.toDateString()===a.toDateString()?`Hoje · ${t.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"
+})}`:t.toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"})}function E(e){return"buy"===e?"↗":"sell"===e?"↘":"↔"}
+async function S(){try{const e=await w("readonly",e=>e.getAll())
+;if(e.sort((e,t)=>t.createdAt.localeCompare(e.createdAt)),c.forEach(e=>URL.revokeObjectURL(e)),c=[],
+t.clearHistoryButton.classList.toggle("hidden",0===e.length),t.historyList.replaceChildren(),!e.length){
+const e=document.createElement("div")
+;return e.className="history-empty",e.innerHTML='<span class="history-empty-mark" aria-hidden="true">◎</span><span>Suas análises deste aparelho aparecem aqui.</span>',
+void t.historyList.append(e)}for(const a of e){const e=document.createElement("div");e.className="history-item",
+e.tabIndex=0,e.setAttribute("role","button"),e.setAttribute("aria-label",`Reabrir ${a.title}, ${C(a.createdAt)}`)
+;const n=document.createElement("img");n.className="history-thumb",n.alt="",n.loading="lazy",
+n.src=URL.createObjectURL(a.thumbBlob),c.push(n.src);const i=document.createElement("span")
+;i.className="history-details";const o=document.createElement("span");o.className="history-state",
+o.textContent=`${E(a.state)} ${a.title}`;const r=document.createElement("span");r.className="history-date",
+r.textContent=C(a.createdAt),i.append(o,r);const s=document.createElement("button");s.className="history-delete",
+s.type="button",s.setAttribute("aria-label","Excluir análise"),s.textContent="×",s.addEventListener("click",async e=>{
+e.stopPropagation(),await w("readwrite",e=>e.delete(a.id)),URL.revokeObjectURL(n.src),await S(),
+m("Análise removida deste aparelho.")});const l=()=>T(a);e.addEventListener("click",l),e.addEventListener("keydown",t=>{
+t.target!==e||"Enter"!==t.key&&" "!==t.key||(t.preventDefault(),l())}),e.append(n,i,s),t.historyList.append(e)}
+}catch(e){
+t.clearHistoryButton.classList.add("hidden"),t.historyList.innerHTML='<div class="history-empty"><span class="history-empty-mark" aria-hidden="true">◎</span><span>Histórico local indisponível neste navegador.</span></div>'
+}}function T(e){v(!1);const a=e.imageBlob;o=a,r=URL.createObjectURL(a),t.image.src=r,t.image.classList.remove("hidden"),
+t.placeholder.classList.add("hidden"),
+t.analyzeButton.disabled=!1,t.analyzeButton.querySelector("span:nth-child(2)").textContent="Analisar imagem",
+M(e.analysis,{savedTime:new Date(e.createdAt),draw:!0}),m("Análise reaberta do histórico local."),
+document.querySelector(".workspace").scrollIntoView({behavior:"smooth",block:"start"})}
+t.input.addEventListener("change",()=>{const e=t.input.files&&t.input.files[0]
+;e&&(e.type.startsWith("image/")?f(e,"importação"):m("Escolha um arquivo de imagem."))}),
+t.cameraButton.addEventListener("click",()=>i?(p(),
+v(),h("Pronto"),t.cameraButton.querySelector("span").textContent="Abrir câmera"):g()),
+t.importButton.addEventListener("click",function(){i?v():p(),t.input.value="",t.input.click()}),
+t.captureButton.addEventListener("click",async function(){
+if(!i||!t.video.videoWidth)return void m("Aguarde a imagem da câmera aparecer.")
+;const e=document.createElement("canvas");e.width=t.video.videoWidth,e.height=t.video.videoHeight,e.getContext("2d",{
+willReadFrequently:!0}).drawImage(t.video,0,0);const a=await new Promise(t=>e.toBlob(t,"image/jpeg",.9))
+;a?(f(a,"captura"),
+m("Imagem capturada. Revise o enquadramento antes de analisar.")):m("A captura não foi concluída. Tente novamente.")}),
+t.analyzeButton.addEventListener("click",async function(){
+if(!o)return void m("Capture ou importe uma imagem antes da análise.");const e=o;t.analyzeButton.disabled=!0,
+[t.cameraButton,t.importButton,t.captureButton,t.retakeButton,t.clearButton].forEach(e=>{e.disabled=!0}),
+t.resultKicker.textContent="LEITURA LOCAL EM ANDAMENTO",t.resultTitle.textContent="Observando os candles…",
+t.resultSummary.textContent="A imagem está sendo analisada no seu aparelho.",
+t.resultIcon.innerHTML='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v4M20.5 12h-4M12 20.5v-4M3.5 12h4"/></svg>',
+document.body.classList.add("is-analyzing"),t.scanLine.classList.remove("hidden"),t.overlay.classList.add("hidden"),
+h("Analisando",!0),await new Promise(e=>setTimeout(e,550));try{const t=await x(e);M(t),await B(e,t)}catch(e){y(!0),
+m("Não foi possível ler esta imagem. Tente outra captura.")}finally{document.body.classList.remove("is-analyzing"),
+t.scanLine.classList.add("hidden"),
+t.analyzeButton.disabled=!1,[t.cameraButton,t.importButton,t.captureButton,t.retakeButton,t.clearButton].forEach(e=>{
+e.disabled=!1})}}),t.retakeButton.addEventListener("click",()=>{v(),m("Pronto para outra imagem.")}),
+t.clearButton.addEventListener("click",()=>v()),t.clearHistoryButton.addEventListener("click",async()=>{
+window.confirm("Apagar todas as análises guardadas neste aparelho?")&&(await w("readwrite",e=>e.clear()),await S(),
+m("Histórico local apagado."))}),t.helpButton.addEventListener("click",()=>t.helpDialog.showModal()),
+t.closeHelpButton.addEventListener("click",()=>t.helpDialog.close()),
+t.dismissHelpButton.addEventListener("click",()=>t.helpDialog.close()),t.helpDialog.addEventListener("click",e=>{
+e.target===t.helpDialog&&t.helpDialog.close()}),window.addEventListener("resize",()=>{
+s&&!t.overlay.classList.contains("hidden")&&A(s)}),window.addEventListener("pagehide",p),y(),S()})();
+</script>
+</body>
+</html>
